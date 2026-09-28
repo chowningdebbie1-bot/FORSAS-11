@@ -1,0 +1,3818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Forsas 11 • 2026</title>
+
+<style>
+/* =========================================================
+   FORSAS 11 — 2026
+   Single-file operating system simulator
+   ========================================================= */
+
+:root{
+    --accent:#4da3ff;
+    --accent2:#7bc7ff;
+    --dark:#101216;
+    --dark2:#181b21;
+    --dark3:#242832;
+    --glass:rgba(20,24,32,.88);
+    --text:#fff;
+    --muted:#b8c0cc;
+    --danger:#e94b55;
+    --desktop1:#142e55;
+    --desktop2:#06101e;
+}
+
+*{
+    box-sizing:border-box;
+}
+
+html,body{
+    width:100%;
+    height:100%;
+    margin:0;
+}
+
+body{
+    overflow:hidden;
+    background:#000;
+    color:white;
+    font-family:"Segoe UI",Arial,sans-serif;
+}
+
+/* =========================================================
+   GENERAL
+   ========================================================= */
+
+button,
+input{
+    font:inherit;
+}
+
+button{
+    border:0;
+}
+
+.hidden{
+    display:none!important;
+}
+
+.fade{
+    animation:fade .45s ease;
+}
+
+@keyframes fade{
+    from{opacity:0}
+    to{opacity:1}
+}
+
+@keyframes spin{
+    to{transform:rotate(360deg)}
+}
+
+@keyframes pulse{
+    0%,100%{opacity:.55}
+    50%{opacity:1}
+}
+
+/* =========================================================
+   BOOT
+   ========================================================= */
+
+#bootScreen{
+    position:fixed;
+    inset:0;
+    z-index:10000;
+    background:#000;
+    overflow:hidden;
+}
+
+.bootStage{
+    position:absolute;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+#bootText{
+    position:absolute;
+    bottom:7%;
+    left:0;
+    right:0;
+    text-align:center;
+    color:#9ba7b7;
+    font-size:15px;
+    letter-spacing:1px;
+}
+
+#beepLight{
+    position:absolute;
+    width:7px;
+    height:7px;
+    border-radius:50%;
+    background:#fff;
+    opacity:0;
+    box-shadow:0 0 25px white;
+}
+
+.bootLetter{
+    position:absolute;
+    font-size:120px;
+    font-weight:900;
+    line-height:1;
+    opacity:0;
+    user-select:none;
+    text-shadow:0 0 20px rgba(255,255,255,.12);
+}
+
+#letterF{left:-180px;top:43%}
+#letterO{left:30%;top:43%}
+#letterR{left:39%;top:43%}
+#letterS1{left:48%;top:43%}
+#letterA{left:57%;top:43%}
+#letterS2{left:66%;top:43%}
+
+.bootCaption{
+    position:absolute;
+    top:18%;
+    width:100%;
+    text-align:center;
+    font-size:20px;
+    color:#b7c0cc;
+    opacity:0;
+}
+
+#bootLogo{
+    position:absolute;
+    left:50%;
+    top:47%;
+    transform:translate(-50%,-50%) scale(.3) rotate(-3deg);
+    font-size:95px;
+    font-weight:900;
+    letter-spacing:8px;
+    opacity:0;
+    text-shadow:
+        0 0 8px rgba(255,255,255,.7),
+        0 0 30px rgba(70,160,255,.8);
+}
+
+#bootSub{
+    position:absolute;
+    top:61%;
+    width:100%;
+    text-align:center;
+    font-size:18px;
+    opacity:0;
+    color:#cdd8e5;
+    letter-spacing:4px;
+}
+
+.bootProgress{
+    position:absolute;
+    bottom:14%;
+    left:50%;
+    transform:translateX(-50%);
+    width:300px;
+    height:4px;
+    background:#222;
+    overflow:hidden;
+    opacity:0;
+}
+
+#bootProgressBar{
+    width:0%;
+    height:100%;
+    background:white;
+}
+
+/* =========================================================
+   LOCK SCREEN
+   ========================================================= */
+
+#lockScreen{
+    position:fixed;
+    inset:0;
+    z-index:9000;
+    display:none;
+    overflow:hidden;
+    background:
+        radial-gradient(circle at 30% 25%,rgba(70,150,255,.4),transparent 30%),
+        radial-gradient(circle at 75% 70%,rgba(120,70,255,.28),transparent 30%),
+        linear-gradient(135deg,#102c52,#050b14 65%,#020307);
+}
+
+.lockGlow{
+    position:absolute;
+    width:500px;
+    height:500px;
+    border-radius:50%;
+    filter:blur(100px);
+    background:#2176d5;
+    opacity:.18;
+    left:-100px;
+    top:-120px;
+}
+
+#lockInfo{
+    position:absolute;
+    left:50%;
+    top:24%;
+    transform:translateX(-50%);
+    text-align:center;
+}
+
+#lockTime{
+    font-size:105px;
+    font-weight:300;
+    letter-spacing:-4px;
+}
+
+#lockDate{
+    margin-top:3px;
+    font-size:23px;
+    color:#d7e2ee;
+}
+
+.lockBottom{
+    position:absolute;
+    left:0;
+    right:0;
+    bottom:50px;
+    text-align:center;
+    color:#d5deea;
+}
+
+.unlockArrow{
+    margin:auto;
+    width:44px;
+    height:44px;
+    border:1px solid rgba(255,255,255,.55);
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:20px;
+    animation:pulse 2s infinite;
+}
+
+.lockNotifications{
+    position:absolute;
+    right:35px;
+    top:35px;
+    width:280px;
+}
+
+.notification{
+    background:rgba(20,25,35,.68);
+    backdrop-filter:blur(15px);
+    border:1px solid rgba(255,255,255,.12);
+    border-radius:14px;
+    padding:14px;
+    margin-bottom:10px;
+    font-size:14px;
+}
+
+/* =========================================================
+   DESKTOP
+   ========================================================= */
+
+#desktop{
+    position:fixed;
+    inset:0;
+    display:none;
+    overflow:hidden;
+    background:
+        radial-gradient(circle at 25% 30%,rgba(64,145,255,.28),transparent 30%),
+        radial-gradient(circle at 80% 20%,rgba(111,74,255,.18),transparent 28%),
+        linear-gradient(135deg,var(--desktop1),var(--desktop2));
+}
+
+.desktopGlow{
+    position:absolute;
+    width:650px;
+    height:650px;
+    border-radius:50%;
+    background:rgba(0,110,255,.15);
+    filter:blur(90px);
+    left:35%;
+    top:10%;
+    pointer-events:none;
+}
+
+.desktopIconArea{
+    position:absolute;
+    top:20px;
+    left:20px;
+    display:grid;
+    grid-template-columns:100px;
+    gap:8px;
+}
+
+.desktopIcon{
+    width:90px;
+    min-height:86px;
+    border-radius:8px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:7px;
+    cursor:pointer;
+    user-select:none;
+    text-align:center;
+    font-size:13px;
+}
+
+.desktopIcon:hover{
+    background:rgba(255,255,255,.12);
+}
+
+.iconGraphic{
+    width:42px;
+    height:42px;
+    border-radius:11px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:25px;
+    background:rgba(255,255,255,.14);
+    box-shadow:0 6px 20px rgba(0,0,0,.16);
+}
+
+#taskbar{
+    position:absolute;
+    left:12px;
+    right:12px;
+    bottom:10px;
+    height:62px;
+    background:rgba(16,19,25,.82);
+    backdrop-filter:blur(22px);
+    border:1px solid rgba(255,255,255,.10);
+    border-radius:18px;
+    display:flex;
+    align-items:center;
+    padding:0 10px;
+    box-shadow:0 12px 35px rgba(0,0,0,.3);
+    z-index:7000;
+}
+
+.taskCenter{
+    position:absolute;
+    left:50%;
+    transform:translateX(-50%);
+    display:flex;
+    align-items:center;
+    gap:5px;
+}
+
+.taskButton{
+    width:45px;
+    height:45px;
+    border-radius:12px;
+    background:transparent;
+    color:white;
+    cursor:pointer;
+    font-size:21px;
+}
+
+.taskButton:hover{
+    background:rgba(255,255,255,.12);
+}
+
+.taskStart{
+    font-weight:700;
+    font-size:19px;
+}
+
+.taskClock{
+    margin-left:auto;
+    text-align:right;
+    padding:0 12px;
+    font-size:12px;
+    line-height:17px;
+}
+
+/* =========================================================
+   START MENU
+   ========================================================= */
+
+#startMenu{
+    position:absolute;
+    display:none;
+    left:50%;
+    bottom:82px;
+    transform:translateX(-50%);
+    width:620px;
+    height:610px;
+    background:rgba(18,21,28,.94);
+    backdrop-filter:blur(30px);
+    border:1px solid rgba(255,255,255,.12);
+    border-radius:24px;
+    box-shadow:0 25px 80px rgba(0,0,0,.55);
+    z-index:8000;
+    padding:22px;
+}
+
+.startSearch{
+    width:100%;
+    height:44px;
+    border:1px solid rgba(255,255,255,.12);
+    border-radius:12px;
+    background:rgba(255,255,255,.07);
+    color:white;
+    outline:none;
+    padding:0 15px;
+}
+
+.startTitle{
+    margin:22px 5px 12px;
+    color:#dbe6f3;
+    font-size:14px;
+}
+
+.startApps{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:8px;
+}
+
+.startApp{
+    height:95px;
+    border-radius:14px;
+    background:transparent;
+    color:white;
+    cursor:pointer;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+}
+
+.startApp:hover{
+    background:rgba(255,255,255,.09);
+}
+
+.startAppIcon{
+    font-size:27px;
+}
+
+.startBottom{
+    position:absolute;
+    left:22px;
+    right:22px;
+    bottom:18px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+
+.profile{
+    display:flex;
+    align-items:center;
+    gap:10px;
+}
+
+.avatar{
+    width:36px;
+    height:36px;
+    border-radius:50%;
+    background:linear-gradient(135deg,#4da3ff,#8257ff);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+/* =========================================================
+   WINDOWS
+   ========================================================= */
+
+.window{
+    position:absolute;
+    left:50%;
+    top:48%;
+    transform:translate(-50%,-50%);
+    width:820px;
+    height:590px;
+    max-width:92vw;
+    max-height:82vh;
+    background:rgba(245,247,250,.97);
+    color:#111;
+    border:1px solid rgba(255,255,255,.25);
+    border-radius:16px;
+    overflow:hidden;
+    box-shadow:0 30px 90px rgba(0,0,0,.55);
+    display:none;
+    z-index:5000;
+}
+
+.window.dark{
+    background:#171a20;
+    color:#fff;
+}
+
+.windowHeader{
+    height:52px;
+    background:rgba(255,255,255,.85);
+    display:flex;
+    align-items:center;
+    padding:0 14px;
+    border-bottom:1px solid #ddd;
+    cursor:default;
+}
+
+.dark .windowHeader{
+    background:#20242c;
+    border-bottom-color:#303640;
+}
+
+.windowTitle{
+    font-weight:600;
+    flex:1;
+}
+
+.windowControls{
+    display:flex;
+    gap:6px;
+}
+
+.winBtn{
+    width:32px;
+    height:30px;
+    border-radius:7px;
+    background:transparent;
+    cursor:pointer;
+}
+
+.winBtn:hover{
+    background:#ddd;
+}
+
+.closeBtn:hover{
+    background:#d94d57;
+    color:white;
+}
+
+.windowBody{
+    height:calc(100% - 52px);
+    overflow:auto;
+}
+
+/* =========================================================
+   SETTINGS
+   ========================================================= */
+
+.settingsLayout{
+    display:flex;
+    height:100%;
+}
+
+.settingsSide{
+    width:210px;
+    background:#eef1f5;
+    padding:12px;
+}
+
+.dark .settingsSide{
+    background:#12151a;
+}
+
+.settingsSide button{
+    width:100%;
+    padding:11px;
+    margin-bottom:5px;
+    text-align:left;
+    background:transparent;
+    border-radius:8px;
+    cursor:pointer;
+}
+
+.settingsSide button:hover{
+    background:rgba(70,130,220,.15);
+}
+
+.settingsMain{
+    flex:1;
+    padding:25px;
+}
+
+.settingCard{
+    padding:18px;
+    background:#f5f6f8;
+    border-radius:12px;
+    margin-bottom:14px;
+}
+
+.dark .settingCard{
+    background:#22262d;
+}
+
+.settingRow{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:12px 0;
+    border-bottom:1px solid rgba(127,127,127,.18);
+}
+
+.settingRow:last-child{
+    border-bottom:0;
+}
+
+.switch{
+    width:48px;
+    height:26px;
+    background:#777;
+    border-radius:20px;
+    padding:3px;
+    cursor:pointer;
+}
+
+.switch span{
+    display:block;
+    width:20px;
+    height:20px;
+    border-radius:50%;
+    background:white;
+    transition:.2s;
+}
+
+.switch.on{
+    background:#338cf4;
+}
+
+.switch.on span{
+    transform:translateX(22px);
+}
+
+/* =========================================================
+   BROWSER
+   ========================================================= */
+
+.browserTop{
+    height:55px;
+    background:#e9edf2;
+    display:flex;
+    align-items:center;
+    gap:7px;
+    padding:8px;
+}
+
+.browserTop button{
+    width:34px;
+    height:34px;
+    border-radius:7px;
+    cursor:pointer;
+}
+
+.browserAddress{
+    flex:1;
+    height:36px;
+    border:1px solid #c6cbd3;
+    border-radius:18px;
+    padding:0 15px;
+    outline:none;
+}
+
+.browserPage{
+    height:calc(100% - 55px);
+    overflow:auto;
+    background:white;
+    color:#111;
+    padding:30px;
+}
+
+.forsasSearch{
+    max-width:600px;
+    margin:50px auto;
+    text-align:center;
+}
+
+.forsasSearch h1{
+    font-size:52px;
+    color:#2475d5;
+}
+
+.searchBox{
+    width:100%;
+    height:48px;
+    border-radius:25px;
+    border:1px solid #ccc;
+    padding:0 18px;
+    margin:20px 0;
+}
+
+/* =========================================================
+   FILE EXPLORER
+   ========================================================= */
+
+.explorerLayout{
+    display:flex;
+    height:100%;
+}
+
+.explorerSide{
+    width:190px;
+    background:#edf0f4;
+    padding:12px;
+}
+
+.explorerSide button{
+    display:block;
+    width:100%;
+    border:0;
+    background:transparent;
+    padding:11px;
+    text-align:left;
+    border-radius:8px;
+    cursor:pointer;
+}
+
+.explorerSide button:hover{
+    background:#dbe6f4;
+}
+
+.explorerMain{
+    flex:1;
+    padding:18px;
+}
+
+.pathBar{
+    background:#edf0f4;
+    padding:9px 12px;
+    border-radius:8px;
+    margin-bottom:18px;
+}
+
+.fileGrid{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:12px;
+}
+
+.file{
+    padding:18px 8px;
+    border-radius:10px;
+    text-align:center;
+    cursor:pointer;
+}
+
+.file:hover{
+    background:#e5edf8;
+}
+
+.fileEmoji{
+    font-size:38px;
+}
+
+/* =========================================================
+   MUSIC
+   ========================================================= */
+
+.musicApp{
+    height:100%;
+    background:linear-gradient(135deg,#121722,#263c62);
+    color:white;
+    padding:35px;
+}
+
+.album{
+    width:220px;
+    height:220px;
+    margin:20px auto;
+    border-radius:18px;
+    background:linear-gradient(135deg,#54a7ff,#7553e8);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:70px;
+    box-shadow:0 25px 50px rgba(0,0,0,.35);
+}
+
+.musicTitle{
+    text-align:center;
+}
+
+.musicControls{
+    display:flex;
+    justify-content:center;
+    gap:12px;
+    margin:20px;
+}
+
+.musicControls button{
+    width:48px;
+    height:48px;
+    border-radius:50%;
+    cursor:pointer;
+}
+
+.progress{
+    width:80%;
+    margin:15px auto;
+    height:5px;
+    background:#596579;
+    border-radius:5px;
+    overflow:hidden;
+}
+
+.progressBar{
+    width:0%;
+    height:100%;
+    background:white;
+}
+
+/* =========================================================
+   VIDEO
+   ========================================================= */
+
+.videoApp{
+    height:100%;
+    background:#090b0f;
+    color:white;
+    padding:20px;
+}
+
+.videoScreen{
+    height:350px;
+    background:
+        radial-gradient(circle at 50% 45%,rgba(70,140,255,.25),transparent 35%),
+        #020304;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:55px;
+}
+
+.videoControls{
+    display:flex;
+    gap:8px;
+    margin-top:12px;
+}
+
+.videoControls button{
+    background:#252a32;
+    color:white;
+    padding:9px 14px;
+    border-radius:7px;
+    cursor:pointer;
+}
+
+/* =========================================================
+   PAINT
+   ========================================================= */
+
+.paintToolbar{
+    display:flex;
+    gap:6px;
+    padding:9px;
+    background:#e7e9ed;
+    flex-wrap:wrap;
+}
+
+.paintToolbar button{
+    padding:7px 10px;
+    border-radius:6px;
+    cursor:pointer;
+}
+
+#paintCanvas{
+    display:block;
+    background:white;
+    margin:auto;
+    cursor:crosshair;
+}
+
+/* =========================================================
+   STORE
+   ========================================================= */
+
+.storeBody{
+    padding:24px;
+}
+
+.storeHero{
+    padding:28px;
+    border-radius:18px;
+    background:linear-gradient(135deg,#1b66ba,#643bd0);
+    color:white;
+    margin-bottom:22px;
+}
+
+.storeGrid{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:14px;
+}
+
+.storeCard{
+    border:1px solid #ddd;
+    border-radius:13px;
+    padding:16px;
+    background:#fff;
+}
+
+.storeIcon{
+    font-size:40px;
+}
+
+.install{
+    margin-top:12px;
+    background:#2d83e8;
+    color:white;
+    padding:8px 14px;
+    border-radius:7px;
+    cursor:pointer;
+}
+
+/* =========================================================
+   ERROR LAB
+   ========================================================= */
+
+.errorLab{
+    background:#111;
+    color:white;
+    height:100%;
+    padding:20px;
+}
+
+.errorButtons{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:9px;
+}
+
+.errorButton{
+    padding:12px;
+    background:#262b34;
+    color:white;
+    border:1px solid #3b424e;
+    border-radius:8px;
+    cursor:pointer;
+}
+
+.errorButton:hover{
+    background:#343b47;
+}
+
+.errorDisplay{
+    margin-top:20px;
+    min-height:260px;
+    border-radius:12px;
+    background:#050505;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    padding:20px;
+}
+
+.blueError{
+    background:#0067b8;
+    color:white;
+}
+
+.redError{
+    background:#6b0000;
+}
+
+.fatalError{
+    background:#000;
+    color:#ff3333;
+    font-family:monospace;
+}
+
+.errorCode{
+    font-size:28px;
+    font-weight:bold;
+}
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media(max-width:800px){
+    .window{
+        width:94vw;
+        height:80vh;
+    }
+
+    #startMenu{
+        width:90vw;
+    }
+
+    .startApps{
+        grid-template-columns:repeat(3,1fr);
+    }
+
+    .storeGrid{
+        grid-template-columns:1fr 1fr;
+    }
+
+    .errorButtons{
+        grid-template-columns:1fr 1fr;
+    }
+
+    #lockTime{
+        font-size:65px;
+    }
+
+    .fileGrid{
+        grid-template-columns:repeat(3,1fr);
+    }
+}
+</style>
+</head>
+
+<body>
+
+<!-- =======================================================
+     BOOT MOVIE
+     ======================================================= -->
+
+<div id="bootScreen">
+
+    <div class="bootStage">
+
+        <div id="beepLight"></div>
+
+        <div id="bootCaption" class="bootCaption">
+            FORSAS 11 INITIALIZING
+        </div>
+
+        <div id="letterF" class="bootLetter">F</div>
+        <div id="letterO" class="bootLetter">O</div>
+        <div id="letterR" class="bootLetter">R</div>
+        <div id="letterS1" class="bootLetter">S</div>
+        <div id="letterA" class="bootLetter">A</div>
+        <div id="letterS2" class="bootLetter">S</div>
+
+        <div id="bootLogo">FORSAS</div>
+
+        <div id="bootSub">
+            11 • 2026
+        </div>
+
+        <div class="bootProgress">
+            <div id="bootProgressBar"></div>
+        </div>
+
+        <div id="bootText">
+            Powering on...
+        </div>
+
+    </div>
+
+</div>
+
+<!-- =======================================================
+     LOCK SCREEN
+     ======================================================= -->
+
+<div id="lockScreen">
+
+    <div class="lockGlow"></div>
+
+    <div class="lockNotifications">
+
+        <div class="notification">
+            <b>Forsas Update</b><br>
+            Your system is ready.
+        </div>
+
+        <div class="notification">
+            <b>ShowServices</b><br>
+            New content is available.
+        </div>
+
+    </div>
+
+    <div id="lockInfo">
+        <div id="lockTime">12:00</div>
+        <div id="lockDate">Loading date...</div>
+    </div>
+
+    <div class="lockBottom">
+
+        <div class="unlockArrow">↑</div>
+
+        <div style="margin-top:12px">
+            Click anywhere or press a key to unlock
+        </div>
+
+    </div>
+
+</div>
+
+<!-- =======================================================
+     DESKTOP
+     ======================================================= -->
+
+<div id="desktop">
+
+    <div class="desktopGlow"></div>
+
+    <div class="desktopIconArea">
+
+        <div class="desktopIcon" onclick="openWindow('browser')">
+            <div class="iconGraphic">🌐</div>
+            Browser
+        </div>
+
+        <div class="desktopIcon" onclick="openWindow('files')">
+            <div class="iconGraphic">📁</div>
+            File Explorer
+        </div>
+
+        <div class="desktopIcon" onclick="openWindow('settings')">
+            <div class="iconGraphic">⚙️</div>
+            Settings
+        </div>
+
+        <div class="desktopIcon" onclick="openWindow('music')">
+            <div class="iconGraphic">🎵</div>
+            Music
+        </div>
+
+        <div class="desktopIcon" onclick="openWindow('video')">
+            <div class="iconGraphic">▶️</div>
+            Video Player
+        </div>
+
+        <div class="desktopIcon" onclick="openWindow('paint')">
+            <div class="iconGraphic">🎨</div>
+            Paint
+        </div>
+
+        <div class="desktopIcon" onclick="openWindow('store')">
+            <div class="iconGraphic">🛍️</div>
+            Forsas Store
+        </div>
+
+        <div class="desktopIcon" onclick="openWindow('errors')">
+            <div class="iconGraphic">⚠️</div>
+            Error Lab
+        </div>
+
+    </div>
+
+    <!-- START MENU -->
+
+    <div id="startMenu">
+
+        <input
+            id="startSearch"
+            class="startSearch"
+            placeholder="Search apps and settings..."
+            oninput="filterStartApps()"
+        >
+
+        <div class="startTitle">
+            Pinned
+        </div>
+
+        <div id="startApps" class="startApps">
+
+            <button class="startApp" data-name="Settings"
+                onclick="openWindow('settings');toggleStart()">
+                <span class="startAppIcon">⚙️</span>
+                Settings
+            </button>
+
+            <button class="startApp" data-name="Browser"
+                onclick="openWindow('browser');toggleStart()">
+                <span class="startAppIcon">🌐</span>
+                Browser
+            </button>
+
+            <button class="startApp" data-name="File Explorer"
+                onclick="openWindow('files');toggleStart()">
+                <span class="startAppIcon">📁</span>
+                Explorer
+            </button>
+
+            <button class="startApp" data-name="Music"
+                onclick="openWindow('music');toggleStart()">
+                <span class="startAppIcon">🎵</span>
+                Music
+            </button>
+
+            <button class="startApp" data-name="Video Player"
+                onclick="openWindow('video');toggleStart()">
+                <span class="startAppIcon">▶️</span>
+                Video
+            </button>
+
+            <button class="startApp" data-name="Paint"
+                onclick="openWindow('paint');toggleStart()">
+                <span class="startAppIcon">🎨</span>
+                Paint
+            </button>
+
+            <button class="startApp" data-name="Store"
+                onclick="openWindow('store');toggleStart()">
+                <span class="startAppIcon">🛍️</span>
+                Store
+            </button>
+
+            <button class="startApp" data-name="Error Lab"
+                onclick="openWindow('errors');toggleStart()">
+                <span class="startAppIcon">⚠️</span>
+                Error Lab
+            </button>
+
+        </div>
+
+        <div class="startBottom">
+
+            <div class="profile">
+                <div class="avatar">F</div>
+                <span>Forsas User</span>
+            </div>
+
+            <button
+                onclick="shutdownForsas()"
+                style="
+                    background:transparent;
+                    color:white;
+                    font-size:20px;
+                    cursor:pointer;
+                    padding:10px;
+                "
+                title="Shut down"
+            >
+                ⏻
+            </button>
+
+        </div>
+
+    </div>
+
+    <!-- TASKBAR -->
+
+    <div id="taskbar">
+
+        <div class="taskCenter">
+
+            <button
+                class="taskButton taskStart"
+                onclick="toggleStart()"
+                title="Start"
+            >
+                F
+            </button>
+
+            <button
+                class="taskButton"
+                onclick="openWindow('browser')"
+                title="Browser"
+            >
+                🌐
+            </button>
+
+            <button
+                class="taskButton"
+                onclick="openWindow('files')"
+                title="File Explorer"
+            >
+                📁
+            </button>
+
+            <button
+                class="taskButton"
+                onclick="openWindow('settings')"
+                title="Settings"
+            >
+                ⚙️
+            </button>
+
+            <button
+                class="taskButton"
+                onclick="openWindow('music')"
+                title="Music"
+            >
+                🎵
+            </button>
+
+        </div>
+
+        <div id="taskClock" class="taskClock">
+            12:00<br>
+            2026
+        </div>
+
+    </div>
+
+</div>
+
+<!-- =======================================================
+     SETTINGS
+     ======================================================= -->
+
+<div id="settings" class="window">
+
+    <div class="windowHeader">
+
+        <div class="windowTitle">
+            ⚙️ Settings
+        </div>
+
+        <div class="windowControls">
+
+            <button
+                class="winBtn closeBtn"
+                onclick="closeWindow('settings')"
+            >
+                ×
+            </button>
+
+        </div>
+
+    </div>
+
+    <div class="windowBody">
+
+        <div class="settingsLayout">
+
+            <aside class="settingsSide">
+
+                <button onclick="settingsPage('system')">
+                    🖥️ System
+                </button>
+
+                <button onclick="settingsPage('personalization')">
+                    🎨 Personalization
+                </button>
+
+                <button onclick="settingsPage('sound')">
+                    🔊 Sound
+                </button>
+
+                <button onclick="settingsPage('about')">
+                    ℹ️ About
+                </button>
+
+            </aside>
+
+            <main id="settingsMain" class="settingsMain">
+
+                <h2>System</h2>
+
+                <div class="settingCard">
+
+                    <div class="settingRow">
+                        <div>
+                            <b>Device name</b><br>
+                            <small>FORSAS-PC-2026</small>
+                        </div>
+                    </div>
+
+                    <div class="settingRow">
+                        <div>
+                            <b>Processor</b><br>
+                            <small>Forsas Quantum Core</small>
+                        </div>
+                    </div>
+
+                    <div class="settingRow">
+                        <div>
+                            <b>Memory</b><br>
+                            <small>16 GB Forsas RAM</small>
+                        </div>
+                    </div>
+
+                    <div class="settingRow">
+                        <div>
+                            <b>Forsas version</b><br>
+                            <small>Forsas 11 • 2026</small>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="settingCard">
+
+                    <div class="settingRow">
+
+                        <div>
+                            <b>Dark mode</b><br>
+                            <small>Change the appearance</small>
+                        </div>
+
+                        <div
+                            id="darkSwitch"
+                            class="switch on"
+                            onclick="toggleDarkMode()"
+                        >
+                            <span></span>
+                        </div>
+
+                    </div>
+
+                    <div class="settingRow">
+
+                        <div>
+                            <b>Animations</b><br>
+                            <small>Interface animations</small>
+                        </div>
+
+                        <div
+                            id="animSwitch"
+                            class="switch on"
+                            onclick="toggleAnimation()"
+                        >
+                            <span></span>
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </main>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- =======================================================
+     BROWSER
+     ======================================================= -->
+
+<div id="browser" class="window">
+
+    <div class="windowHeader">
+
+        <div class="windowTitle">
+            🌐 Forsas Browser
+        </div>
+
+        <div class="windowControls">
+
+            <button
+                class="winBtn"
+                onclick="browserHome()"
+            >
+                ⌂
+            </button>
+
+            <button
+                class="winBtn closeBtn"
+                onclick="closeWindow('browser')"
+            >
+                ×
+            </button>
+
+        </div>
+
+    </div>
+
+    <div class="windowBody">
+
+        <div class="browserTop">
+
+            <button onclick="browserBack()">←</button>
+
+            <button onclick="browserForward()">→</button>
+
+            <button onclick="browserReload()">↻</button>
+
+            <input
+                id="browserAddress"
+                class="browserAddress"
+                value="forsas://home"
+                onkeydown="browserEnter(event)"
+            >
+
+        </div>
+
+        <div id="browserPage" class="browserPage">
+
+            <div class="forsasSearch">
+
+                <h1>forsas</h1>
+
+                <p>
+                    Welcome to Forsas Browser.
+                </p>
+
+                <input
+                    id="searchInput"
+                    class="searchBox"
+                    placeholder="Search Forsas..."
+                    onkeydown="searchForsas(event)"
+                >
+
+                <div>
+                    <button onclick="openBrowserPage('news')">
+                        Forsas News
+                    </button>
+
+                    <button onclick="openBrowserPage('store')">
+                        Forsas Store
+                    </button>
+
+                    <button onclick="openBrowserPage('help')">
+                        Help
+                    </button>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- =======================================================
+     FILE EXPLORER
+     ======================================================= -->
+
+<div id="files" class="window">
+
+    <div class="windowHeader">
+
+        <div class="windowTitle">
+            📁 File Explorer
+        </div>
+
+        <div class="windowControls">
+
+            <button
+                class="winBtn closeBtn"
+                onclick="closeWindow('files')"
+            >
+                ×
+            </button>
+
+        </div>
+
+    </div>
+
+    <div class="windowBody">
+
+        <div class="explorerLayout">
+
+            <aside class="explorerSide">
+
+                <button onclick="explorerFolder('Desktop')">
+                    🖥️ Desktop
+                </button>
+
+                <button onclick="explorerFolder('Documents')">
+                    📄 Documents
+                </button>
+
+                <button onclick="explorerFolder('Downloads')">
+                    ⬇️ Downloads
+                </button>
+
+                <button onclick="explorerFolder('Pictures')">
+                    🖼️ Pictures
+                </button>
+
+                <button onclick="explorerFolder('Music')">
+                    🎵 Music
+                </button>
+
+                <button onclick="explorerFolder('Videos')">
+                    🎬 Videos
+                </button>
+
+            </aside>
+
+            <main class="explorerMain">
+
+                <div id="filePath" class="pathBar">
+                    This PC / Desktop
+                </div>
+
+                <div id="fileGrid" class="fileGrid">
+
+                    <div class="file">
+                        <div class="fileEmoji">📄</div>
+                        Welcome.txt
+                    </div>
+
+                    <div class="file">
+                        <div class="fileEmoji">🖼️</div>
+                        Forsas.png
+                    </div>
+
+                    <div class="file">
+                        <div class="fileEmoji">📁</div>
+                        Projects
+                    </div>
+
+                    <div class="file">
+                        <div class="fileEmoji">📁</div>
+                        Games
+                    </div>
+
+                </div>
+
+            </main>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- =======================================================
+     MUSIC PLAYER
+     ======================================================= -->
+
+<div id="music" class="window dark">
+
+    <div class="windowHeader">
+
+        <div class="windowTitle">
+            🎵 Forsas Music
+        </div>
+
+        <div class="windowControls">
+
+            <button
+                class="winBtn closeBtn"
+                onclick="closeWindow('music')"
+            >
+                ×
+            </button>
+
+        </div>
+
+    </div>
+
+    <div class="windowBody">
+
+        <div class="musicApp">
+
+            <div class="album">
+                ♪
+            </div>
+
+            <div class="musicTitle">
+
+                <h2 id="musicSong">
+                    Forsas Startup Theme
+                </h2>
+
+                <p id="musicArtist">
+                    Forsas Audio
+                </p>
+
+            </div>
+
+            <div class="progress">
+                <div id="musicProgress" class="progressBar"></div>
+            </div>
+
+            <div class="musicControls">
+
+                <button onclick="previousSong()">⏮</button>
+
+                <button
+                    id="musicPlay"
+                    onclick="toggleMusic()"
+                >
+                    ▶
+                </button>
+
+                <button onclick="nextSong()">⏭</button>
+
+            </div>
+
+            <div style="text-align:center">
+
+                <button
+                    onclick="selectSong(0)"
+                    style="margin:4px;padding:8px;border-radius:8px"
+                >
+                    Startup
+                </button>
+
+                <button
+                    onclick="selectSong(1)"
+                    style="margin:4px;padding:8px;border-radius:8px"
+                >
+                    Desktop
+                </button>
+
+                <button
+                    onclick="selectSong(2)"
+                    style="margin:4px;padding:8px;border-radius:8px"
+                >
+                    Night
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- =======================================================
+     VIDEO PLAYER
+     ======================================================= -->
+
+<div id="video" class="window dark">
+
+    <div class="windowHeader">
+
+        <div class="windowTitle">
+            ▶ Forsas Video Player
+        </div>
+
+        <div class="windowControls">
+
+            <button
+                class="winBtn closeBtn"
+                onclick="closeWindow('video')"
+            >
+                ×
+            </button>
+
+        </div>
+
+    </div>
+
+    <div class="windowBody">
+
+        <div class="videoApp">
+
+            <div id="videoScreen" class="videoScreen">
+                ▶
+            </div>
+
+            <div class="videoControls">
+
+                <button onclick="videoPlay()">Play</button>
+                <button onclick="videoPause()">Pause</button>
+                <button onclick="videoRestart()">Restart</button>
+                <button onclick="videoFullscreen()">Fullscreen</button>
+
+            </div>
+
+            <div style="margin-top:20px">
+
+                <button
+                    onclick="loadVideo('Forsas Startup Movie')"
+                    class="videoControls"
+                >
+                    Forsas Startup Movie
+                </button>
+
+                <button
+                    onclick="loadVideo('Forsas Desktop Tour')"
+                    class="videoControls"
+                >
+                    Desktop Tour
+                </button>
+
+            </div>
+
+            <p id="videoStatus">
+                Ready.
+            </p>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- =======================================================
+     PAINT
+     ======================================================= -->
+
+<div id="paint" class="window">
+
+    <div class="windowHeader">
+
+        <div class="windowTitle">
+            🎨 Forsas Paint
+        </div>
+
+        <div class="windowControls">
+
+            <button
+                class="winBtn closeBtn"
+                onclick="closeWindow('paint')"
+            >
+                ×
+            </button>
+
+        </div>
+
+    </div>
+
+    <div class="windowBody">
+
+        <div class="paintToolbar">
+
+            <button onclick="paintTool='pencil'">
+                Pencil
+            </button>
+
+            <button onclick="paintTool='eraser'">
+                Eraser
+            </button>
+
+            <button onclick="clearPaint()">
+                Clear
+            </button>
+
+            <label>
+                Size
+                <input
+                    id="brushSize"
+                    type="range"
+                    min="1"
+                    max="40"
+                    value="5"
+                >
+            </label>
+
+            <label>
+                Color
+                <input
+                    id="brushColor"
+                    type="color"
+                    value="#111111"
+                >
+            </label>
+
+        </div>
+
+        <canvas
+            id="paintCanvas"
+            width="760"
+            height="470"
+        ></canvas>
+
+    </div>
+
+</div>
+
+<!-- =======================================================
+     STORE
+     ======================================================= -->
+
+<div id="store" class="window">
+
+    <div class="windowHeader">
+
+        <div class="windowTitle">
+            🛍️ Forsas Store
+        </div>
+
+        <div class="windowControls">
+
+            <button
+                class="winBtn closeBtn"
+                onclick="closeWindow('store')"
+            >
+                ×
+            </button>
+
+        </div>
+
+    </div>
+
+    <div class="windowBody">
+
+        <div class="storeBody">
+
+            <div class="storeHero">
+
+                <h1>Forsas Store</h1>
+
+                <p>
+                    Apps, games and utilities for Forsas 11.
+                </p>
+
+            </div>
+
+            <div class="storeGrid">
+
+                <div class="storeCard">
+                    <div class="storeIcon">🧩</div>
+                    <h3>Widget Pack</h3>
+                    <p>Extra desktop widgets.</p>
+                    <button
+                        class="install"
+                        onclick="installApp(this,'Widget Pack')"
+                    >
+                        Install
+                    </button>
+                </div>
+
+                <div class="storeCard">
+                    <div class="storeIcon">🎮</div>
+                    <h3>Forsas Arcade</h3>
+                    <p>A collection of tiny games.</p>
+                    <button
+                        class="install"
+                        onclick="installApp(this,'Forsas Arcade')"
+                    >
+                        Install
+                    </button>
+                </div>
+
+                <div class="storeCard">
+                    <div class="storeIcon">🌌</div>
+                    <h3>Wallpaper Pack</h3>
+                    <p>New desktop backgrounds.</p>
+                    <button
+                        class="install"
+                        onclick="installApp(this,'Wallpaper Pack')"
+                    >
+                        Install
+                    </button>
+                </div>
+
+                <div class="storeCard">
+                    <div class="storeIcon">🔊</div>
+                    <h3>Sound Pack</h3>
+                    <p>More system sounds.</p>
+                    <button
+                        class="install"
+                        onclick="installApp(this,'Sound Pack')"
+                    >
+                        Install
+                    </button>
+                </div>
+
+                <div class="storeCard">
+                    <div class="storeIcon">🛠️</div>
+                    <h3>Developer Tools</h3>
+                    <p>Tools for advanced users.</p>
+                    <button
+                        class="install"
+                        onclick="installApp(this,'Developer Tools')"
+                    >
+                        Install
+                    </button>
+                </div>
+
+                <div class="storeCard">
+                    <div class="storeIcon">✨</div>
+                    <h3>Forsas Themes</h3>
+                    <p>Change the system appearance.</p>
+                    <button
+                        class="install"
+                        onclick="installApp(this,'Forsas Themes')"
+                    >
+                        Install
+                    </button>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- =======================================================
+     ERROR LAB
+     ======================================================= -->
+
+<div id="errors" class="window dark">
+
+    <div class="windowHeader">
+
+        <div class="windowTitle">
+            ⚠️ Error Lab
+        </div>
+
+        <div class="windowControls">
+
+            <button
+                class="winBtn closeBtn"
+                onclick="closeWindow('errors')"
+            >
+                ×
+            </button>
+
+        </div>
+
+    </div>
+
+    <div class="windowBody">
+
+        <div class="errorLab">
+
+            <h2>System Error Laboratory</h2>
+
+            <p style="color:#9da7b5">
+                Test harmless simulated system failures.
+            </p>
+
+            <div class="errorButtons">
+
+                <button
+                    class="errorButton"
+                    onclick="showError('blue')"
+                >
+                    Windows XP Style
+                </button>
+
+                <button
+                    class="errorButton"
+                    onclick="showError('win7')"
+                >
+                    Windows 7 Style
+                </button>
+
+                <button
+                    class="errorButton"
+                    onclick="showError('win11')"
+                >
+                    Windows 11 Style
+                </button>
+
+                <button
+                    class="errorButton"
+                    onclick="showError('android')"
+                >
+                    Android Style
+                </button>
+
+                <button
+                    class="errorButton"
+                    onclick="showError('mac')"
+                >
+                    macOS Style
+                </button>
+
+                <button
+                    class="errorButton"
+                    onclick="showError('console')"
+                >
+                    Console Failure
+                </button>
+
+                <button
+                    class="errorButton"
+                    onclick="showError('storage')"
+                >
+                    Storage Error
+                </button>
+
+                <button
+                    class="errorButton"
+                    onclick="showError('network')"
+                >
+                    Network Error
+                </button>
+
+                <button
+                    class="errorButton"
+                    onclick="showError('forsas')"
+                >
+                    FATAL FORSAS
+                </button>
+
+            </div>
+
+            <div
+                id="errorDisplay"
+                class="errorDisplay"
+            >
+                <div>
+                    <h2>No error selected</h2>
+                    <p>
+                        Choose an error above.
+                    </p>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+/* =========================================================
+   FORSAS 11 JAVASCRIPT
+   ========================================================= */
+
+let audioContext=null;
+let windowsOpen=[];
+let darkMode=true;
+let animations=true;
+
+function initAudio(){
+
+    if(!audioContext){
+
+        audioContext=
+            new(window.AudioContext||
+            window.webkitAudioContext)();
+
+    }
+
+    if(audioContext.state==="suspended"){
+        audioContext.resume();
+    }
+}
+
+function tone(
+    frequency=600,
+    duration=.1,
+    type="sine",
+    volume=.05
+){
+
+    initAudio();
+
+    const oscillator=
+        audioContext.createOscillator();
+
+    const gain=
+        audioContext.createGain();
+
+    oscillator.type=type;
+    oscillator.frequency.value=frequency;
+
+    gain.gain.setValueAtTime(
+        volume,
+        audioContext.currentTime
+    );
+
+    gain.gain.exponentialRampToValueAtTime(
+        .001,
+        audioContext.currentTime+duration
+    );
+
+    oscillator.connect(gain);
+    gain.connect(audioContext.destination);
+
+    oscillator.start();
+
+    oscillator.stop(
+        audioContext.currentTime+duration
+    );
+}
+
+function bootBeep(){
+
+    tone(700,.12,"square",.06);
+
+    const light=
+        document.getElementById("beepLight");
+
+    light.style.opacity="1";
+
+    setTimeout(()=>{
+        light.style.opacity="0";
+    },120);
+}
+
+function wait(ms){
+    return new Promise(resolve=>setTimeout(resolve,ms));
+}
+
+/* =========================================================
+   BOOT MOVIE
+   ========================================================= */
+
+async function runBoot(){
+
+    const boot=
+        document.getElementById("bootScreen");
+
+    const text=
+        document.getElementById("bootText");
+
+    const caption=
+        document.getElementById("bootCaption");
+
+    const F=
+        document.getElementById("letterF");
+
+    const O=
+        document.getElementById("letterO");
+
+    const R=
+        document.getElementById("letterR");
+
+    const S1=
+        document.getElementById("letterS1");
+
+    const A=
+        document.getElementById("letterA");
+
+    const S2=
+        document.getElementById("letterS2");
+
+    const logo=
+        document.getElementById("bootLogo");
+
+    const sub=
+        document.getElementById("bootSub");
+
+    const progress=
+        document.querySelector(".bootProgress");
+
+    const bar=
+        document.getElementById("bootProgressBar");
+
+    text.textContent="Power button pressed.";
+
+    await wait(700);
+
+    bootBeep();
+
+    text.textContent="POST: checking Forsas hardware...";
+
+    await wait(900);
+
+    text.textContent="Memory check complete.";
+
+    await wait(500);
+
+    text.textContent="Loading Forsas Core...";
+
+    await wait(800);
+
+    caption.style.opacity="1";
+    caption.textContent="A FORSAS 11 STARTUP";
+
+    await wait(900);
+
+    /*
+      O R S A S appear first.
+    */
+
+    for(const el of [O,R,S1,A,S2]){
+        el.style.opacity="1";
+        el.style.transform="translateY(0)";
+    }
+
+    text.textContent=
+        "Startup characters initialized.";
+
+    await wait(900);
+
+    /*
+      F flies into the group.
+    */
+
+    F.style.opacity="1";
+
+    let x=-180;
+    let rotation=-30;
+
+    await new Promise(resolve=>{
+
+        const timer=setInterval(()=>{
+
+            x+=24;
+            rotation+=22;
+
+            F.style.left=x+"px";
+            F.style.transform=
+                `rotate(${rotation}deg)`;
+
+            if(x>390){
+
+                clearInterval(timer);
+                resolve();
+
+            }
+
+        },25);
+
+    });
+
+    tone(180,.18,"sawtooth",.05);
+
+    text.textContent=
+        "F has entered the startup sequence.";
+
+    /*
+      The letters react.
+    */
+
+    [O,R,S1,A,S2].forEach((el,index)=>{
+
+        el.animate(
+            [
+                {transform:"translateX(0) rotate(0deg)"},
+                {
+                    transform:
+                    `translateX(${index%2?14:-14}px)
+                     rotate(${index%2?8:-8}deg)`
+                },
+                {transform:"translateX(0) rotate(0deg)"}
+            ],
+            {
+                duration:500,
+                iterations:2
+            }
+        );
+
+    });
+
+    await wait(1300);
+
+    text.textContent=
+        "O R S A S are not impressed.";
+
+    await wait(900);
+
+    /*
+      F gets thrown around.
+    */
+
+    F.animate(
+        [
+            {
+                left:"390px",
+                top:"43%",
+                transform:"rotate(460deg)"
+            },
+            {
+                left:"68%",
+                top:"25%",
+                transform:"rotate(900deg)"
+            },
+            {
+                left:"47%",
+                top:"66%",
+                transform:"rotate(1250deg)"
+            },
+            {
+                left:"31%",
+                top:"43%",
+                transform:"rotate(1580deg)"
+            }
+        ],
+        {
+            duration:1800,
+            easing:"cubic-bezier(.2,.9,.2,1)"
+        }
+    );
+
+    tone(240,.15,"square",.045);
+
+    await wait(1900);
+
+    text.textContent=
+        "Rebuilding logo...";
+
+    /*
+      Form FORSAS.
+    */
+
+    const finalPositions={
+        F:["27%","43%"],
+        O:["36%","43%"],
+        R:["45%","43%"],
+        S1:["54%","43%"],
+        A:["63%","43%"],
+        S2:["72%","43%"]
+    };
+
+    const letters=[
+        [F,"F"],
+        [O,"O"],
+        [R,"R"],
+        [S1,"S1"],
+        [A,"A"],
+        [S2,"S2"]
+    ];
+
+    for(const [el,key] of letters){
+
+        el.style.left=finalPositions[key][0];
+        el.style.top=finalPositions[key][1];
+        el.style.transform="rotate(0deg)";
+
+        await wait(180);
+
+        tone(420,.06,"sine",.025);
+    }
+
+    await wait(600);
+
+    [F,O,R,S1,A,S2].forEach(el=>{
+        el.style.opacity="0";
+    });
+
+    logo.style.opacity="1";
+
+    logo.animate(
+        [
+            {
+                transform:
+                "translate(-50%,-50%) scale(.25) rotate(-8deg)",
+                opacity:0
+            },
+            {
+                transform:
+                "translate(-50%,-50%) scale(1.1) rotate(2deg)",
+                opacity:1
+            },
+            {
+                transform:
+                "translate(-50%,-50%) scale(1) rotate(0deg)",
+                opacity:1
+            }
+        ],
+        {
+            duration:1800,
+            fill:"forwards"
+        }
+    );
+
+    tone(500,.12,"triangle",.035);
+    await wait(200);
+    tone(700,.18,"triangle",.035);
+
+    sub.style.opacity="1";
+
+    await wait(1200);
+
+    progress.style.opacity="1";
+
+    for(let p=0;p<=100;p++){
+
+        bar.style.width=p+"%";
+
+        if(p<20){
+            text.textContent=
+                "Initializing system services...";
+        }else if(p<45){
+            text.textContent=
+                "Preparing desktop environment...";
+        }else if(p<70){
+            text.textContent=
+                "Loading applications...";
+        }else if(p<90){
+            text.textContent=
+                "Almost ready...";
+        }else{
+            text.textContent=
+                "Forsas 11 is ready.";
+        }
+
+        await wait(18);
+
+    }
+
+    await wait(900);
+
+    boot.style.opacity="0";
+    boot.style.transition="opacity 900ms ease";
+
+    await wait(900);
+
+    boot.style.display="none";
+
+    showLockScreen();
+
+}
+
+/* =========================================================
+   LOCK SCREEN
+   ========================================================= */
+
+function updateClocks(){
+
+    const now=new Date();
+
+    const time=
+        now.toLocaleTimeString([],{
+            hour:"2-digit",
+            minute:"2-digit"
+        });
+
+    const date=
+        now.toLocaleDateString([],{
+            weekday:"long",
+            month:"long",
+            day:"numeric",
+            year:"numeric"
+        });
+
+    document.getElementById("lockTime")
+        .textContent=time;
+
+    document.getElementById("lockDate")
+        .textContent=date;
+
+    document.getElementById("taskClock")
+        .innerHTML=
+        time+"<br>"+now.toLocaleDateString();
+}
+
+setInterval(updateClocks,1000);
+updateClocks();
+
+function showLockScreen(){
+
+    document.getElementById("lockScreen")
+        .style.display="block";
+
+    tone(440,.08,"sine",.025);
+
+}
+
+function unlock(){
+
+    const lock=
+        document.getElementById("lockScreen");
+
+    lock.style.transition=
+        "opacity .65s ease";
+
+    lock.style.opacity="0";
+
+    tone(720,.07,"sine",.025);
+
+    setTimeout(()=>{
+
+        lock.style.display="none";
+        lock.style.opacity="1";
+
+        document.getElementById("desktop")
+            .style.display="block";
+
+    },650);
+}
+
+document.getElementById("lockScreen")
+    .addEventListener("click",unlock);
+
+document.addEventListener("keydown",e=>{
+
+    if(
+        document.getElementById("lockScreen")
+            .style.display==="block"
+    ){
+        unlock();
+    }
+
+});
+
+/* =========================================================
+   START MENU
+   ========================================================= */
+
+function toggleStart(){
+
+    const menu=
+        document.getElementById("startMenu");
+
+    const visible=
+        getComputedStyle(menu).display!=="none";
+
+    menu.style.display=
+        visible?"none":"block";
+
+    tone(
+        visible?350:500,
+        .06,
+        "sine",
+        .025
+    );
+
+}
+
+function filterStartApps(){
+
+    const query=
+        document.getElementById("startSearch")
+            .value.toLowerCase();
+
+    document
+        .querySelectorAll(".startApp")
+        .forEach(app=>{
+
+            const name=
+                app.dataset.name.toLowerCase();
+
+            app.style.display=
+                name.includes(query)
+                ?"flex"
+                :"none";
+
+        });
+
+}
+
+/* =========================================================
+   WINDOWS
+   ========================================================= */
+
+function openWindow(id){
+
+    const win=
+        document.getElementById(id);
+
+    if(!win)return;
+
+    win.style.display="block";
+
+    if(!windowsOpen.includes(id)){
+        windowsOpen.push(id);
+    }
+
+    tone(600,.05,"sine",.018);
+
+}
+
+function closeWindow(id){
+
+    const win=
+        document.getElementById(id);
+
+    if(!win)return;
+
+    win.style.display="none";
+
+    windowsOpen=
+        windowsOpen.filter(x=>x!==id);
+
+    tone(350,.05,"sine",.018);
+
+}
+
+/* =========================================================
+   SETTINGS
+   ========================================================= */
+
+function settingsPage(page){
+
+    const main=
+        document.getElementById("settingsMain");
+
+    if(page==="system"){
+
+        main.innerHTML=`
+            <h2>System</h2>
+            <div class="settingCard">
+                <div class="settingRow">
+                    <div>
+                        <b>Device name</b><br>
+                        <small>FORSAS-PC-2026</small>
+                    </div>
+                </div>
+                <div class="settingRow">
+                    <div>
+                        <b>Processor</b><br>
+                        <small>Forsas Quantum Core</small>
+                    </div>
+                </div>
+                <div class="settingRow">
+                    <div>
+                        <b>Memory</b><br>
+                        <small>16 GB Forsas RAM</small>
+                    </div>
+                </div>
+                <div class="settingRow">
+                    <div>
+                        <b>Storage</b><br>
+                        <small>1 TB Forsas SSD</small>
+                    </div>
+                </div>
+            </div>
+        `;
+
+    }
+
+    if(page==="personalization"){
+
+        main.innerHTML=`
+            <h2>Personalization</h2>
+
+            <div class="settingCard">
+
+                <div class="settingRow">
+                    <div>
+                        <b>Wallpaper</b><br>
+                        <small>Forsas Blue</small>
+                    </div>
+
+                    <button
+                        onclick="changeWallpaper()"
+                        style="padding:8px 12px"
+                    >
+                        Change
+                    </button>
+                </div>
+
+                <div class="settingRow">
+                    <div>
+                        <b>Accent color</b>
+                    </div>
+
+                    <input
+                        type="color"
+                        value="#4da3ff"
+                        onchange="changeAccent(this.value)"
+                    >
+                </div>
+
+            </div>
+        `;
+
+    }
+
+    if(page==="sound"){
+
+        main.innerHTML=`
+            <h2>Sound</h2>
+
+            <div class="settingCard">
+
+                <div class="settingRow">
+                    <div>
+                        <b>Master volume</b>
+                    </div>
+
+                    <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value="60"
+                        onchange="tone(700,.1,'sine',this.value/2000)"
+                    >
+                </div>
+
+                <div class="settingRow">
+                    <div>
+                        <b>Test startup sound</b>
+                    </div>
+
+                    <button
+                        onclick="bootBeep()"
+                        style="padding:8px 12px"
+                    >
+                        Test
+                    </button>
+                </div>
+
+            </div>
+        `;
+
+    }
+
+    if(page==="about"){
+
+        main.innerHTML=`
+            <h2>About Forsas 11</h2>
+
+            <div class="settingCard">
+
+                <h3>Forsas 11</h3>
+
+                <p>
+                    2026 edition of the Forsas operating
+                    system simulator.
+                </p>
+
+                <p>
+                    Build: 11.2026.001
+                </p>
+
+                <p>
+                    Simulator mode: Browser
+                </p>
+
+            </div>
+        `;
+
+    }
+
+}
+
+function toggleDarkMode(){
+
+    darkMode=!darkMode;
+
+    const sw=
+        document.getElementById("darkSwitch");
+
+    sw.classList.toggle("on",darkMode);
+
+    document
+        .querySelectorAll(".window")
+        .forEach(win=>{
+
+            if(
+                win.id==="music"||
+                win.id==="video"||
+                win.id==="errors"
+            )return;
+
+            win.classList.toggle("dark",darkMode);
+
+        });
+
+    tone(500,.06);
+
+}
+
+function toggleAnimation(){
+
+    animations=!animations;
+
+    document
+        .getElementById("animSwitch")
+        .classList.toggle("on",animations);
+
+    document.body.style.setProperty(
+        "--animation-speed",
+        animations?"1":"0"
+    );
+
+}
+
+function changeWallpaper(){
+
+    const desktop=
+        document.getElementById("desktop");
+
+    desktop.style.background=
+        "radial-gradient(circle at 70% 25%,rgba(100,80,255,.35),transparent 30%),linear-gradient(135deg,#361c63,#081421)";
+
+}
+
+function changeAccent(color){
+
+    document.documentElement
+        .style.setProperty("--accent",color);
+
+}
+
+/* =========================================================
+   BROWSER
+   ========================================================= */
+
+let browserHistory=["home"];
+let browserIndex=0;
+
+function browserEnter(event){
+
+    if(event.key==="Enter"){
+
+        openBrowserURL(
+            document.getElementById("browserAddress")
+                .value
+        );
+
+    }
+
+}
+
+function openBrowserURL(url){
+
+    browserHistory=
+        browserHistory.slice(0,browserIndex+1);
+
+    browserHistory.push(url);
+    browserIndex++;
+
+    renderBrowserPage(url);
+
+}
+
+function renderBrowserPage(url){
+
+    const page=
+        document.getElementById("browserPage");
+
+    document.getElementById("browserAddress")
+        .value=url;
+
+    if(url.includes("news")){
+
+        page.innerHTML=`
+            <h1>Forsas News</h1>
+            <hr>
+            <article>
+                <h2>Forsas 11 launches</h2>
+                <p>
+                    The newest Forsas desktop environment
+                    is now running.
+                </p>
+            </article>
+            <article>
+                <h2>ShowServices receives an update</h2>
+                <p>
+                    More entertainment content is available.
+                </p>
+            </article>
+        `;
+
+    }else if(url.includes("store")){
+
+        page.innerHTML=`
+            <h1>Forsas Store</h1>
+            <p>
+                Visit the Store app for downloadable
+                simulated applications.
+            </p>
+            <button onclick="openWindow('store')">
+                Open Store
+            </button>
+        `;
+
+    }else if(url.includes("help")){
+
+        page.innerHTML=`
+            <h1>Forsas Help</h1>
+            <h3>Keyboard</h3>
+            <p>
+                Click Start to open the application menu.
+            </p>
+            <p>
+                Click desktop icons to launch applications.
+            </p>
+            <p>
+                Press a key on the lock screen to unlock.
+            </p>
+        `;
+
+    }else{
+
+        page.innerHTML=`
+            <div class="forsasSearch">
+                <h1>forsas</h1>
+                <p>
+                    Search results for
+                    <b>${escapeHTML(url)}</b>
+                </p>
+                <hr>
+                <h3>Forsas Search</h3>
+                <p>
+                    No real internet connection is used
+                    by this simulator.
+                </p>
+            </div>
+        `;
+
+    }
+
+}
+
+function browserBack(){
+
+    if(browserIndex>0){
+
+        browserIndex--;
+        renderBrowserPage(
+            browserHistory[browserIndex]
+        );
+
+    }
+
+}
+
+function browserForward(){
+
+    if(browserIndex<browserHistory.length-1){
+
+        browserIndex++;
+
+        renderBrowserPage(
+            browserHistory[browserIndex]
+        );
+
+    }
+
+}
+
+function browserReload(){
+
+    renderBrowserPage(
+        browserHistory[browserIndex]
+    );
+
+    tone(700,.05);
+
+}
+
+function browserHome(){
+
+    renderBrowserPage("forsas://home");
+
+    document.getElementById("browserPage")
+        .innerHTML=`
+            <div class="forsasSearch">
+                <h1>forsas</h1>
+                <p>
+                    Welcome to Forsas Browser.
+                </p>
+                <input
+                    id="searchInput"
+                    class="searchBox"
+                    placeholder="Search Forsas..."
+                    onkeydown="searchForsas(event)"
+                >
+                <div>
+                    <button onclick="openBrowserPage('news')">
+                        Forsas News
+                    </button>
+                    <button onclick="openBrowserPage('store')">
+                        Forsas Store
+                    </button>
+                    <button onclick="openBrowserPage('help')">
+                        Help
+                    </button>
+                </div>
+            </div>
+        `;
+
+}
+
+function openBrowserPage(page){
+
+    openBrowserURL(
+        "forsas://"+page
+    );
+
+}
+
+function searchForsas(event){
+
+    if(event.key==="Enter"){
+
+        openBrowserURL(
+            "search://"+
+            document.getElementById("searchInput").value
+        );
+
+    }
+
+}
+
+function escapeHTML(str){
+
+    return String(str)
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;");
+
+}
+
+/* =========================================================
+   FILE EXPLORER
+   ========================================================= */
+
+const explorerData={
+
+    Desktop:[
+        ["📄","Welcome.txt"],
+        ["🖼️","Forsas.png"],
+        ["📁","Projects"],
+        ["📁","Games"]
+    ],
+
+    Documents:[
+        ["📄","Forsas Notes.txt"],
+        ["📄","Startup Plan.txt"],
+        ["📄","Read Me.txt"]
+    ],
+
+    Downloads:[
+        ["📦","ForsasTheme.fpack"],
+        ["📄","Downloaded.txt"]
+    ],
+
+    Pictures:[
+        ["🖼️","Wallpaper 1.png"],
+        ["🖼️","Wallpaper 2.png"],
+        ["🖼️","FORSAS.png"]
+    ],
+
+    Music:[
+        ["🎵","Startup Theme.fmusic"],
+        ["🎵","Desktop Theme.fmusic"],
+        ["🎵","Night Theme.fmusic"]
+    ],
+
+    Videos:[
+        ["🎬","Startup Movie.fvideo"],
+        ["🎬","Desktop Tour.fvideo"]
+    ]
+
+};
+
+function explorerFolder(folder){
+
+    document.getElementById("filePath")
+        .textContent=
+        "This PC / "+folder;
+
+    const grid=
+        document.getElementById("fileGrid");
+
+    grid.innerHTML="";
+
+    explorerData[folder].forEach(file=>{
+
+        const div=
+            document.createElement("div");
+
+        div.className="file";
+
+        div.innerHTML=`
+            <div class="fileEmoji">${file[0]}</div>
+            ${escapeHTML(file[1])}
+        `;
+
+        div.onclick=()=>{
+            tone(500,.05);
+        };
+
+        grid.appendChild(div);
+
+    });
+
+}
+
+/* =========================================================
+   MUSIC PLAYER
+   ========================================================= */
+
+const songs=[
+    "Forsas Startup Theme",
+    "Forsas Desktop Theme",
+    "Forsas Night Drive"
+];
+
+let currentSong=0;
+let musicPlaying=false;
+let musicTimer=null;
+let musicProgress=0;
+
+function selectSong(index){
+
+    currentSong=index;
+    musicProgress=0;
+
+    document.getElementById("musicSong")
+        .textContent=songs[index];
+
+    document.getElementById("musicProgress")
+        .style.width="0%";
+
+    tone(550,.07);
+
+}
+
+function toggleMusic(){
+
+    musicPlaying=!musicPlaying;
+
+    document.getElementById("musicPlay")
+        .textContent=
+        musicPlaying?"⏸":"▶";
+
+    if(musicPlaying){
+
+        clearInterval(musicTimer);
+
+        musicTimer=setInterval(()=>{
+
+            musicProgress+=1;
+
+            document.getElementById("musicProgress")
+                .style.width=
+                musicProgress+"%";
+
+            if(musicProgress>=100){
+
+                nextSong();
+
+            }
+
+        },100);
+
+        tone(700,.08);
+
+    }else{
+
+        clearInterval(musicTimer);
+        tone(400,.06);
+
+    }
+
+}
+
+function nextSong(){
+
+    currentSong=
+        (currentSong+1)%songs.length;
+
+    selectSong(currentSong);
+
+    if(!musicPlaying){
+        toggleMusic();
+    }
+
+}
+
+function previousSong(){
+
+    currentSong=
+        (currentSong-1+songs.length)
+        %songs.length;
+
+    selectSong(currentSong);
+
+}
+
+/* =========================================================
+   VIDEO PLAYER
+   ========================================================= */
+
+let videoPlaying=false;
+let videoTimer=null;
+let videoProgress=0;
+
+function loadVideo(name){
+
+    document.getElementById("videoScreen")
+        .textContent="▶";
+
+    document.getElementById("videoStatus")
+        .textContent=
+        "Loaded: "+name;
+
+    videoProgress=0;
+
+    tone(500,.06);
+
+}
+
+function videoPlay(){
+
+    videoPlaying=true;
+
+    clearInterval(videoTimer);
+
+    videoTimer=setInterval(()=>{
+
+        videoProgress+=1;
+
+        document.getElementById("videoStatus")
+            .textContent=
+            "Playing • "+videoProgress+"%";
+
+        if(videoProgress>=100){
+
+            videoPause();
+
+            document.getElementById("videoStatus")
+                .textContent="Finished.";
+
+        }
+
+    },100);
+
+    document.getElementById("videoScreen")
+        .textContent="▶";
+
+    tone(700,.07);
+
+}
+
+function videoPause(){
+
+    videoPlaying=false;
+
+    clearInterval(videoTimer);
+
+    document.getElementById("videoStatus")
+        .textContent=
+        "Paused • "+videoProgress+"%";
+
+    document.getElementById("videoScreen")
+        .textContent="Ⅱ";
+
+}
+
+function videoRestart(){
+
+    videoProgress=0;
+
+    document.getElementById("videoStatus")
+        .textContent="Restarted.";
+
+    document.getElementById("videoScreen")
+        .textContent="▶";
+
+    tone(500,.06);
+
+}
+
+function videoFullscreen(){
+
+    const screen=
+        document.getElementById("videoScreen");
+
+    if(screen.requestFullscreen){
+        screen.requestFullscreen();
+    }
+
+}
+
+/* =========================================================
+   PAINT
+   ========================================================= */
+
+const canvas=
+    document.getElementById("paintCanvas");
+
+const ctx=
+    canvas.getContext("2d");
+
+let painting=false;
+let paintTool="pencil";
+
+function paintStart(e){
+
+    painting=true;
+    paintMove(e);
+
+}
+
+function paintEnd(){
+
+    painting=false;
+    ctx.beginPath();
+
+}
+
+function paintMove(e){
+
+    if(!painting)return;
+
+    const rect=
+        canvas.getBoundingClientRect();
+
+    const x=
+        (e.clientX-rect.left)*
+        (canvas.width/rect.width);
+
+    const y=
+        (e.clientY-rect.top)*
+        (canvas.height/rect.height);
+
+    const size=
+        Number(
+            document.getElementById("brushSize")
+                .value
+        );
+
+    const color=
+        document.getElementById("brushColor")
+            .value;
+
+    ctx.lineWidth=size;
+    ctx.lineCap="round";
+
+    if(paintTool==="eraser"){
+
+        ctx.strokeStyle="#ffffff";
+
+    }else{
+
+        ctx.strokeStyle=color;
+
+    }
+
+    ctx.lineTo(x,y);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x,y);
+
+}
+
+canvas.addEventListener("pointerdown",paintStart);
+canvas.addEventListener("pointerup",paintEnd);
+canvas.addEventListener("pointerleave",paintEnd);
+canvas.addEventListener("pointermove",paintMove);
+
+function clearPaint(){
+
+    ctx.clearRect(
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
+
+}
+
+/* =========================================================
+   STORE
+   ========================================================= */
+
+function installApp(button,name){
+
+    button.disabled=true;
+    button.textContent="Installing...";
+
+    let p=0;
+
+    const timer=setInterval(()=>{
+
+        p+=10;
+
+        button.textContent=
+            "Installing "+p+"%";
+
+        if(p>=100){
+
+            clearInterval(timer);
+
+            button.textContent="Installed ✓";
+
+            tone(800,.08);
+
+        }
+
+    },120);
+
+}
+
+/* =========================================================
+   ERROR LAB
+   ========================================================= */
+
+function showError(type){
+
+    const display=
+        document.getElementById("errorDisplay");
+
+    display.className="errorDisplay";
+
+    tone(180,.12,"square",.04);
+
+    if(type==="blue"){
+
+        display.classList.add("blueError");
+
+        display.innerHTML=`
+            <div>
+                <div class="errorCode">
+                    :( 
+                </div>
+                <h2>
+                    A problem has been detected.
+                </h2>
+                <p>
+                    FORSAS_SIMULATED_SYSTEM_ERROR
+                </p>
+                <p>
+                    This is a harmless simulated crash.
+                </p>
+            </div>
+        `;
+
+    }
+
+    else if(type==="win7"){
+
+        display.innerHTML=`
+            <div style="
+                width:90%;
+                padding:30px;
+                background:#1671c8;
+                color:white;
+                text-align:left;
+                border-radius:5px;
+            ">
+                <h1>Windows-style error</h1>
+                <p>
+                    The simulated system encountered
+                    an unexpected condition.
+                </p>
+                <p>
+                    Collecting diagnostic information...
+                </p>
+                <b>100% complete</b>
+            </div>
+        `;
+
+    }
+
+    else if(type==="win11"){
+
+        display.innerHTML=`
+            <div>
+                <div style="font-size:70px">
+                    ☹
+                </div>
+                <h2>
+                    Your device ran into a problem.
+                </h2>
+                <p>
+                    Simulated error code:
+                    FORSAS_11_TEST
+                </p>
+            </div>
+        `;
+
+    }
+
+    else if(type==="android"){
+
+        display.innerHTML=`
+            <div>
+                <div style="font-size:60px">⚠️</div>
+                <h2>System UI isn't responding</h2>
+                <p>
+                    Wait or close the simulated app.
+                </p>
+                <button onclick="clearError()">
+                    Close
+                </button>
+            </div>
+        `;
+
+    }
+
+    else if(type==="mac"){
+
+        display.innerHTML=`
+            <div>
+                <div style="font-size:65px"></div>
+                <h2>System Error</h2>
+                <p>
+                    A simulated kernel failure occurred.
+                </p>
+                <p>
+                    Restart the simulator to continue.
+                </p>
+            </div>
+        `;
+
+    }
+
+    else if(type==="console"){
+
+        display.innerHTML=`
+            <div>
+                <div style="font-size:70px">🎮</div>
+                <h2>Console Startup Failure</h2>
+                <p>
+                    Controller connection lost.
+                </p>
+                <p>
+                    Storage status: simulated
+                </p>
+            </div>
+        `;
+
+    }
+
+    else if(type==="storage"){
+
+        display.innerHTML=`
+            <div>
+                <div style="font-size:70px">💾</div>
+                <h2>Storage unavailable</h2>
+                <p>
+                    Simulated drive F: could not be mounted.
+                </p>
+                <button onclick="clearError()">
+                    Retry
+                </button>
+            </div>
+        `;
+
+    }
+
+    else if(type==="network"){
+
+        display.innerHTML=`
+            <div>
+                <div style="font-size:70px">📡</div>
+                <h2>No network</h2>
+                <p>
+                    Forsas Browser could not connect.
+                </p>
+                <button onclick="clearError()">
+                    Diagnose
+                </button>
+            </div>
+        `;
+
+    }
+
+    else if(type==="forsas"){
+
+        display.classList.add("fatalError");
+
+        display.innerHTML=`
+            <div>
+                <div style="font-size:50px">
+                    FATAL FATAL FATAL
+                </div>
+
+                <h1>
+                    FORSAS SYSTEM FAILURE
+                </h1>
+
+                <p>
+                    Something has gone extremely
+                    wrong inside the simulator.
+                </p>
+
+                <p>
+                    ERROR:
+                    FORSAS_11_2026_CORE
+                </p>
+
+                <p>
+                    Status:
+                    F was thrown into the startup logo again.
+                </p>
+
+                <button
+                    onclick="clearError()"
+                    style="
+                        padding:10px 18px;
+                        background:#c22;
+                        color:white;
+                        border-radius:7px;
+                        cursor:pointer
+                    "
+                >
+                    Recover
+                </button>
+            </div>
+        `;
+
+    }
+
+}
+
+function clearError(){
+
+    document.getElementById("errorDisplay")
+        .className="errorDisplay";
+
+    document.getElementById("errorDisplay")
+        .innerHTML=`
+            <div>
+                <h2>Error cleared</h2>
+                <p>
+                    Forsas recovered successfully.
+                </p>
+            </div>
+        `;
+
+    tone(750,.08);
+
+}
+
+/* =========================================================
+   SHUTDOWN
+   ========================================================= */
+
+async function shutdownForsas(){
+
+    toggleStart();
+
+    clearInterval(musicTimer);
+    clearInterval(videoTimer);
+
+    tone(300,.1,"sine",.04);
+
+    const desktop=
+        document.getElementById("desktop");
+
+    desktop.style.transition=
+        "opacity 1s ease";
+
+    desktop.style.opacity="0";
+
+    await wait(1100);
+
+    desktop.style.display="none";
+
+    /*
+      Reuse the startup letters for a
+      reverse-style shutdown animation.
+    */
+
+    const boot=
+        document.getElementById("bootScreen");
+
+    boot.style.display="block";
+    boot.style.opacity="1";
+    boot.style.background="#000";
+
+    document.getElementById("bootLogo")
+        .style.opacity="1";
+
+    document.getElementById("bootLogo")
+        .textContent="FORSAS";
+
+    document.getElementById("bootText")
+        .textContent="Shutting down Forsas 11...";
+
+    document.getElementById("bootSub")
+        .style.opacity="1";
+
+    document.getElementById("bootSub")
+        .textContent="Closing applications";
+
+    await wait(800);
+
+    document.getElementById("bootLogo")
+        .animate(
+            [
+                {
+                    transform:
+                    "translate(-50%,-50%) scale(1)"
+                },
+                {
+                    transform:
+                    "translate(-50%,-50%) scale(.15) rotate(-20deg)",
+                    opacity:0
+                }
+            ],
+            {
+                duration:1100,
+                fill:"forwards"
+            }
+        );
+
+    await wait(1200);
+
+    document.getElementById("bootText")
+        .textContent="Power off.";
+
+    document.getElementById("bootSub")
+        .style.opacity="0";
+
+    tone(180,.2,"square",.05);
+
+    await wait(1000);
+
+    /*
+      Return to a simple power-off state.
+    */
+
+    boot.innerHTML=`
+        <div style="
+            position:absolute;
+            inset:0;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            color:#555;
+            font-size:14px;
+            background:#000;
+        ">
+            FORSAS 11 is powered off.
+            <br>
+            Click anywhere to power on.
+        </div>
+    `;
+
+    boot.onclick=()=>{
+        location.reload();
+    };
+
+}
+
+/* =========================================================
+   INITIALIZATION
+   ========================================================= */
+
+document.addEventListener("click",initAudio,{once:true});
+
+window.addEventListener("load",()=>{
+
+    setTimeout(()=>{
+        runBoot();
+    },400);
+
+});
+
+</script>
+
+</body>
+</html>
